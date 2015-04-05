@@ -1,0 +1,367 @@
+{
+	"folder_history":
+	[
+		"/home/perkev/project/monitor-utils"
+	],
+	"last_version": 3083,
+	"last_window_id": 2,
+	"log_indexing": false,
+	"settings":
+	{
+		"new_window_height": 1132.0,
+		"new_window_settings":
+		{
+			"auto_complete":
+			{
+				"selected_items":
+				[
+				]
+			},
+			"build_system_choices":
+			[
+			],
+			"build_varint": "",
+			"command_palette":
+			{
+				"height": 0.0,
+				"last_filter": "",
+				"selected_items":
+				[
+				],
+				"width": 0.0
+			},
+			"console":
+			{
+				"height": 0.0,
+				"history":
+				[
+				]
+			},
+			"distraction_free":
+			{
+				"menu_visible": true,
+				"show_minimap": false,
+				"show_open_files": false,
+				"show_tabs": false,
+				"side_bar_visible": false,
+				"status_bar_visible": false
+			},
+			"file_history":
+			[
+			],
+			"find":
+			{
+				"height": 0.0
+			},
+			"find_in_files":
+			{
+				"height": 0.0,
+				"where_history":
+				[
+				]
+			},
+			"find_state":
+			{
+				"case_sensitive": false,
+				"find_history":
+				[
+				],
+				"highlight": true,
+				"in_selection": false,
+				"preserve_case": false,
+				"regex": false,
+				"replace_history":
+				[
+				],
+				"reverse": false,
+				"show_context": true,
+				"use_buffer2": true,
+				"whole_word": false,
+				"wrap": true
+			},
+			"incremental_find":
+			{
+				"height": 0.0
+			},
+			"input":
+			{
+				"height": 0.0
+			},
+			"menu_visible": true,
+			"output.find_results":
+			{
+				"height": 0.0
+			},
+			"pinned_build_system": "",
+			"replace":
+			{
+				"height": 0.0
+			},
+			"save_all_on_build": true,
+			"select_file":
+			{
+				"height": 0.0,
+				"last_filter": "",
+				"selected_items":
+				[
+				],
+				"width": 0.0
+			},
+			"select_project":
+			{
+				"height": 0.0,
+				"last_filter": "",
+				"selected_items":
+				[
+				],
+				"width": 0.0
+			},
+			"select_symbol":
+			{
+				"height": 0.0,
+				"last_filter": "",
+				"selected_items":
+				[
+				],
+				"width": 0.0
+			},
+			"show_minimap": true,
+			"show_open_files": false,
+			"show_tabs": true,
+			"side_bar_visible": true,
+			"side_bar_width": 135.0,
+			"status_bar_visible": true,
+			"template_settings":
+			{
+			}
+		},
+		"new_window_width": 862.0
+	},
+	"windows":
+	[
+		{
+			"auto_complete":
+			{
+				"selected_items":
+				[
+				]
+			},
+			"buffers":
+			[
+				{
+					"contents": "#!/usr/bin/env perl\n\n#####################################\n#####################################\n### ______               _     =) ###\n### | ___ \\             | |       ###\n### | |_/ / __ _  _ __  | |       ###\n### |    / / _` || '_ \\ | |       ###\n### | |\\ \\| (_| || | | || |____   ###\n### \\_| \\_|\\__,_||_| |_|\\_____/   ###\n#####################################\n#####################################\n#\nuse strict;\nuse Net::SNMP;\nmy $stat;\nmy $msg;\nmy $perf;\nmy $days = 14;\nmy $script_name = \"check-cisco.pl\";\n\n### SNMP OIDs\n###############\n# Temperature\nmy $S_temp = \".1.3.6.1.4.1.9.9.13.1.3.1.3\";\n# Memory\nmy $S_mem_used = \".1.3.6.1.4.1.9.9.48.1.1.1.5.1\"; # Byte\nmy $S_mem_free = \".1.3.6.1.4.1.9.9.48.1.1.1.6.1\"; # Byte\n# CPU Load\nmy $S_load_5s = \".1.3.6.1.4.1.9.2.1.56.0\";\nmy $S_load_1m = \".1.3.6.1.4.1.9.2.1.57.0\";\nmy $S_load_5m = \".1.3.6.1.4.1.9.2.1.58.0\";\n# Power Supply\nmy $S_ps = \".1.3.6.1.4.1.9.9.13.1.5.1\";\nmy $S_ps_name = \"$S_ps.2\";\nmy $S_ps_stat = \"$S_ps.3\";\n# Fan\nmy $S_fan = \".1.3.6.1.4.1.9.9.13.1.4.1\";\nmy $S_fan_name = \"$S_fan.2\";\nmy $S_fan_stat = \"$S_fan.3\";\n# Module\nmy $S_module_status = \".1.3.6.1.4.1.9.9.117.1.2.1.1.2\";\n# Interfaces\nmy $S_int_entry = \".1.3.6.1.2.1.2.2.1\";\nmy $S_int_desc = \"$S_int_entry.2\";\nmy $S_int_adminstatus = \"$S_int_entry.7\";\nmy $S_int_operstatus = \"$S_int_entry.8\";\nmy $S_int_lastchange = \"$S_int_entry.9\";\nmy $S_int_InOctets = \"$S_int_entry.10\";\nmy $S_int_OutOctets = \"$S_int_entry.16\";\nmy $S_int_number = \".1.3.6.1.2.1.2.1.0\";\n\n# SNMP Status Codes\nmy %phy_dev_status = (\n	1 => 'normal',\n	2 => 'warning',\n	3 => 'critical',\n	4 => 'shutdown',\n	5 => 'notPresent',\n	6 => 'notFunctioning',\n);\nmy %module_status_code = (\n	1 => 'unknown',\n	2 => 'ok',\n	3 => 'disabled',\n	4 => 'okButDiagFailed',\n	5 => 'boot',\n	6 => 'selfTest',\n	7 => 'failed',\n	8 => 'missing',\n	9 => 'mismatchWithParent',\n	10 => 'mismatchConfig',\n	11 => 'diagFailed',\n	12 => 'dormant',\n	13 => 'outOfServiceAdmin',\n	14 => 'outOfServiceEnvTemp',\n	15 => 'poweredDown',\n	16 => 'poweredUp',\n	17 => 'powerDenied',\n	18 => 'powerCycled',\n	19 => 'okButPowerOverWarning',\n	20 => 'okButPowerOverCritical',\n	21 => 'syncInProgress',\n);\nmy %int_status_index = (\n	1 => 'up',\n	2 => 'down',\n	3 => 'testing',\n	4 => 'unknown',\n	5 => 'notPresent',\n	6 => 'lowerLayerDown',\n);\n\n### Functions\n###############\nsub _create_session {\n	my ($server, $comm) = @_;\n	my $version = 1;\n	my ($sess, $err) = Net::SNMP->session( -hostname => $server, -version => $version, -community => $comm);\n	if (!defined($sess)) {\n		print \"Can't create SNMP session to $server\\n\";\n		exit(1);\n	}\n	return $sess;\n}\n\nsub FSyntaxError {\n	print \"Syntax Error !\\n\";\n# 	print \"$0 -H [ip|dnsname] -C [snmp community] -t [temp|fan|ps|cpu|mem|module|freeint] -w [warning value] -c [critical value] -d [days]\\n\";\n	print \"$script_name\\n\";\n	print \"-H = Ip/Dns Name of the Switch\\n\";\n	print \"-C = SNMP Community\\n\";\n	print \"-t = Check type\\n\";\n	print \"\\ttemp   	- Temperature\\n\";\n	print \"\\tfan    	- Fan Fail\\n\";\n	print \"\\tps     	- Power Supply Fail\\n\";\n	print \"\\tcpu    	- CPU Load\\n\";\n	print \"\\tmem    	- Memory\\n\";\n	print \"\\tmodule		- Module Health\\n\";\n	print \"\\tfreeint - Free eth interfaces for X days (-d)\\n\";\n	print \"\\tint - Interface Operation Stat (use with -i or -o)\\n\";\n	print \"-w = Warning Value\\n\";\n	print \"-c = Critical Value\\n\";\n	print \"-d = number of days that the ethernet interface hasn't change state, default is 14 (only for -t freeint)\\n\";\n	print \"-i = Interface Name (only for -t int)\\n\";\n	print \"-o = Interface OID (only for -t int)\\n\";\n	exit(3);\n}\n\nif($#ARGV < 5 or $#ARGV > 11) {\n        FSyntaxError;\n}\n\n### Gather input from user\n#############################\nmy $switch;\nmy $community;\nmy $check_type;\nmy $warn = 0;\nmy $crit = 0;\nmy $int;\nmy $oidint;\n\nwhile(@ARGV) {\n	my $temp = shift(@ARGV);\n	if(\"$temp\" eq '-H') {\n		$switch = shift(@ARGV);\n	} elsif(\"$temp\" eq '-C') {\n		$community = shift(@ARGV);\n	} elsif(\"$temp\" eq '-t') {\n		$check_type = shift(@ARGV);\n	} elsif(\"$temp\" eq '-w') {\n		$warn = shift(@ARGV);\n	} elsif(\"$temp\" eq '-c') {\n		$crit = shift(@ARGV);\n	} elsif(\"$temp\" eq '-i') {\n		$int = shift(@ARGV);\n	} elsif(\"$temp\" eq '-o') {\n		$oidint = shift(@ARGV);\n	} elsif(\"$temp\" eq '-d') {\n		$days = shift(@ARGV);\n		if(\"$days\" eq \"\") {\n			$days = 14;\n		}\n	} else {\n		FSyntaxError();\n	}\n}\n\n# Validate Warning\nif(\"$check_type\" ne \"temp\") {\n	if($warn > $crit and \"$check_type\" ne \"freeint\" and \"$check_type\" ne \"mem\") {\n		print \"Warning can't be larger then Critical: $warn > $crit\\n\";\n		FSyntaxError();\n	} elsif($warn < $crit and \"$check_type\" eq \"freeint\") {\n		print \"Warning can't be smaller then Critical: $warn < $crit in intfree check\\n\";\n		FSyntaxError();\n	} elsif($warn < $crit and \"$check_type\" eq \"mem\") {\n		print \"Warning can't be smaller then Critical: $warn < $crit in intfree check\\n\";\n		FSyntaxError();\n	}\n}\n\n# Establish SNMP Session\nour $snmp_session = _create_session($switch,$community);\n\n### Temperature ###\nif($check_type =~ /^temp/) {\n	my $temp;\n	my $R_tbl = $snmp_session->get_table($S_temp);\n	foreach my $oid ( keys %$R_tbl) {\n		$temp = \"$$R_tbl{$oid}\";\n		last;\n	}\n	\n	if(\"$temp\" eq \"\") {\n		print \"The switch $switch can't report temperature via SNMP\\n\";\n		FSyntaxError();\n	}\n	\n	if($temp > 1) {\n		if($warn > $crit and \"$check_type\") {\n			print \"Warning can't be larger then Critical: $warn > $crit\\n\";\n			FSyntaxError();\n		}\n		if($temp <= $warn) {\n			$stat = 0;\n			$msg = \"Temperature: OK - Temperature is $temp Celsius\";\n		}  elsif($temp > $warn and $temp < $crit) {\n			$stat = 1;\n			$msg = \"Temperature: Warn - Temperature is $temp Celsius\";\n		} elsif($temp >= $crit) {\n			$stat = 2;\n			$msg = \"Temperature: CRIT - Temperature is $temp Celsius\";\n		}\n		$perf = \"temperature=$temp;$warn;$crit\";\n	} else {\n		if($warn > 0 or $crit > 0) {\n			print \"ERR:\\nSome switches only show boolean value 0=OK 1=ERROR\\nplease dont use -w and -c arguments\\n\\n\";\n			FSyntaxError();\n		}\n		if($temp == 1) {\n			$stat = 0;\n			$msg = \"Temperature: OK\";\n		} else {\n			$stat = 2;\n			$msg = \"Temperature: CRIT\";\n		}\n		$perf = \"temperature=$temp\";\n	}\n\n### Memory ###\n\n} elsif($check_type eq \"mem\") {\n	my $R_mem_used = $snmp_session->get_request(-varbindlist => [$S_mem_used]);\n	my $mem_used = \"$R_mem_used->{$S_mem_used}\";\n	my $R_mem_free = $snmp_session->get_request(-varbindlist => [$S_mem_free]);\n	my $mem_free = \"$R_mem_free->{$S_mem_free}\";\n	my $mem_total = $mem_free + $mem_used;\n	\n	$mem_used = int($mem_used / 1024 / 1024);\n	$mem_free = int($mem_free / 1024 / 1024);\n	$mem_total = int($mem_total / 1024 / 1024);\n	\n	my $mem_free_perc = int($mem_free / $mem_total * 100);\n	\n	if($mem_free_perc > $warn) {\n		$stat = 0;\n		$msg = \"Memory: OK - Free Memory $mem_free_perc%\";\n	}  elsif($mem_free_perc <= $warn and $mem_free_perc > $crit) {\n		$stat = 1;\n		$msg = \"Memory: Warn - Free Memory $mem_free_perc %\";\n	} elsif($mem_free_perc <= $crit) {\n		$stat = 2;\n		$msg = \"Memory: CRIT - Free Memory $mem_free_perc %\";\n	}\n\n	$perf = \"memory_total=$mem_total\\MB memory_used=$mem_used\\MB\";\n\n### Interface Stat ###\n\n} elsif($check_type eq \"int\") {\n	my $R_tbl;\n	if ($oidint) {\n		$R_tbl = $snmp_session->get_request(-varbindlist => [\"$oidint\"]);\n		$int = $$R_tbl{\"$oidint\"};\n	} else {\n		$R_tbl = $snmp_session->get_table($S_int_desc);\n	}\n	my $is_int_exists = 0;\n	foreach my $oid ( keys %$R_tbl) {\n		my $name = \"$$R_tbl{$oid}\";\n		if($name eq $int) {\n			$is_int_exists++;\n			my $id = \"$oid\";\n			$id =~ s/$S_int_desc\\.//;\n			my $R_stat = $snmp_session->get_request(-varbindlist => [\"$S_int_operstatus.$id\"]);\n			my $int_stat = $R_stat->{\"$S_int_operstatus.$id\"};\n			if($int_stat != 1) {\n				$stat = 2;\n				$msg = \"CRIT: $int -> $int_status_index{$int_stat}\";\n				$perf = \"int=0\";\n			} else {\n				$stat = 0;\n				$msg = \"OK: $int -> $int_status_index{$int_stat}\";\n				$perf = \"int=1\";\n			}\n			last;\n		}\n		\n	}\n	\n	if($is_int_exists == 0) {\n		$stat = 3;\n		$msg = \"UNKNOWN: $int does not exists\";\n		$perf = \"int=0\";\n	}\n\n### CPU Load ###\n\n} elsif($check_type eq \"cpu\") {\n	my $R_load_5s = $snmp_session->get_request(-varbindlist => [$S_load_5s]);\n	my $load_5s = \"$R_load_5s->{$S_load_5s}\";\n	my $R_load_1m = $snmp_session->get_request(-varbindlist => [$S_load_1m]);\n	my $load_1m = \"$R_load_1m->{$S_load_1m}\";\n	my $R_load_5m = $snmp_session->get_request(-varbindlist => [$S_load_5m]);\n	my $load_5m = \"$R_load_5m->{$S_load_5m}\";\n	\n	if($load_5s <= $warn) {\n		$stat = 0;\n		$msg = \"Cpu: OK - Cpu Load $load_5s% $load_1m% $load_5m%\";\n	}  elsif($load_5s > $warn and $load_5s < $crit) {\n		$stat = 1;\n		$msg = \"Cpu: Warn - Cpu Load $load_5s% $load_1m% $load_5m%\";\n	} elsif($load_5s >= $crit) {\n		$stat = 2;\n		$msg = \"Cpu: CRIT - Cpu Load $load_5s% $load_1m% $load_5m%\";\n	}\n\n	$perf = \"cpu_5s=$load_5s\\percent;$warn;$crit cpu_1m=$load_1m\\percent cpu_5m=$load_5m\\percent\";\n\n### Fan Status ###\n\n} elsif($check_type eq \"fan\") {\n	my $R_tbl = $snmp_session->get_table($S_fan_name);\n	my $total_err = 0;\n	my $err_msg;\n	my $sum = 0;\n	foreach my $oid ( keys %$R_tbl) {\n		$sum = $sum + 1;\n		my $name = \"$$R_tbl{$oid}\";\n		my $id = \"$oid\";\n		$id =~ s/$S_fan_name\\.//;\n		my $R_stat = $snmp_session->get_request(-varbindlist => [\"$S_fan_stat.$id\"]);\n		my $stat = $R_stat->{\"$S_fan_stat.$id\"};\n		if($stat != 1) {\n			$total_err = $total_err + 1;\n			$err_msg = \"$err_msg $name -> $phy_dev_status{$stat}\";\n		}\n	}\n	\n	if($total_err != 0) {\n		$err_msg = \", $err_msg have an error\";\n	} else {\n		$err_msg = \"all good\";\n	}\n	\n	if($total_err <= $warn) {\n		$stat = 0;\n		$msg = \"Fans: OK - $sum Fans are running $err_msg\";\n	}  elsif($total_err > $warn and $total_err < $crit) {\n		$stat = 1;\n		$msg = \"Fans: Warn - $sum Fans are running $err_msg\";\n	} elsif($total_err >= $crit) {\n		$stat = 2;\n		$msg = \"Fans: Crit - $sum Fans are running $err_msg\";\n	}\n	\n	$perf = \"total=$sum err=$total_err\";\n\n### Power Supplies ###\n\n} elsif($check_type eq \"ps\") {\n	my $R_tbl = $snmp_session->get_table($S_ps_name);\n	my $total_err = 0;\n	my $err_msg;\n	my $sum = 0;\n	foreach my $oid ( keys %$R_tbl) {\n		$sum = $sum + 1;\n		my $name = \"$$R_tbl{$oid}\";\n		my $id = \"$oid\";\n		$id =~ s/$S_ps_name\\.//;\n		my $R_stat = $snmp_session->get_request(-varbindlist => [\"$S_ps_stat.$id\"]);\n		my $stat = $R_stat->{\"$S_ps_stat.$id\"};\n		if($stat != 1) {\n			$total_err = $total_err + 1;\n			$err_msg = \"$err_msg $name -> $phy_dev_status{$stat}\";\n		}\n	}\n	\n	if($total_err != 0) {\n		$err_msg = \", $err_msg have an error\";\n	} else {\n		$err_msg = \"all good\";\n	}\n	\n	if($total_err <= $warn) {\n		$stat = 0;\n		$msg = \"PS: OK - $sum PS are running $err_msg\";\n	}  elsif($total_err > $warn and $total_err < $crit) {\n		$stat = 1;\n		$msg = \"PS: Warn - $sum PS are running $err_msg\";\n	} elsif($total_err >= $crit) {\n		$stat = 2;\n		$msg = \"PS: Crit - $sum PS are running $err_msg\";\n	}\n	\n	$perf = \"total=$sum err=$total_err\";\n\n### Module Status ###\n\n} elsif($check_type eq \"module\") {\n	my $R_tbl = $snmp_session->get_table($S_module_status);\n	my $total_err = 0;\n	my $err_msg;\n	my $sum = 0;\n	foreach my $oid ( keys %$R_tbl) {\n		$sum = $sum + 1;\n		my $module_status = \"$$R_tbl{$oid}\";\n		my $id = \"$oid\";\n		$id =~ s/$S_module_status\\.//;\n		if($module_status != 2) {\n			$total_err = $total_err + 1;\n			$err_msg = \"$err_msg $id -> $module_status_code{$module_status}\";\n		}\n	}\n	\n	if($sum == 0) {\n		print \"The switch $switch doesn't have any modules\\n\";\n		FSyntaxError();\n	}\n	\n	if($total_err != 0) {\n		$err_msg = \", $err_msg have an error\";\n	} else {\n		$err_msg = \"all good\";\n	}\n	\n	if($total_err <= $warn) {\n		$stat = 0;\n		$msg = \"Modules: OK - $sum Modules are running $err_msg\";\n	}  elsif($total_err > $warn and $total_err < $crit) {\n		$stat = 1;\n		$msg = \"Modules: Warn - $sum Modules are running $err_msg\";\n	} elsif($total_err >= $crit) {\n		$stat = 2;\n		$msg = \"Modules: Crit - $sum Modules are running $err_msg\";\n	}\n	\n	$perf = \"total=$sum err=$total_err\";\n\n### Free Interfaces ###\n\n} elsif($check_type eq \"freeint\") {\n	\n	my $R_int_number = $snmp_session->get_request(-varbindlist => [$S_int_number]);\n	my $int_number = $R_int_number->{$S_int_number};\n	\n	my $R_tbl = $snmp_session->get_table($S_int_desc);\n	my @ints;\n	my $down = 0;\n	my $sum = 0;\n	\n	foreach my $oid ( keys %$R_tbl) {\n		if($$R_tbl{$oid} =~ /Ethernet/) {\n			$sum++;\n			my $id = \"$oid\";\n			$id =~ s/$S_int_desc\\.//;\n			\n			# Admin Status\n			my $R_int_adminstatus = $snmp_session->get_request(-varbindlist => [\"$S_int_adminstatus.$id\"]);\n			my $int_adminstatus = $R_int_adminstatus->{\"$S_int_adminstatus.$id\"};\n			# Oper Status\n			my $R_int_operstatus = $snmp_session->get_request(-varbindlist => [\"$S_int_operstatus.$id\"]);\n			my $int_operstatus = $R_int_operstatus->{\"$S_int_operstatus.$id\"};\n			# Inbout\n			my $R_int_InOctets = $snmp_session->get_request(-varbindlist => [\"$S_int_InOctets.$id\"]);\n			my $int_InOctets = $R_int_InOctets->{\"$S_int_InOctets.$id\"};\n			# Outbound\n			my $R_int_OutOctets = $snmp_session->get_request(-varbindlist => [\"$S_int_OutOctets.$id\"]);\n			my $int_OutOctets = $R_int_OutOctets->{\"$S_int_OutOctets.$id\"};\n			# Last Change\n			my $R_int_lastchange = $snmp_session->get_request(-varbindlist => [\"$S_int_lastchange.$id\"]);\n			my $int_lastchange = $R_int_lastchange->{\"$S_int_lastchange.$id\"};\n			my @lastchanged = split(\" \",$int_lastchange);\n			\n			if($int_adminstatus == 2 or $int_operstatus == 2) {\n				if((\"$lastchanged[1]\" eq \"days,\" and $lastchanged[1] => $days) or ($int_OutOctets == 0 and $int_InOctets == 0)) {\n					$down++;\n				}\n			}\n			\n		}\n	}\n	\n	if($down >= $warn) {\n		$stat = 0;\n		$msg = \"Free Interfaces: OK - $down/$sum free interfaces for $days days\";\n	}  elsif($down < $warn and $down > $crit) {\n		$stat = 1;\n		$msg = \"Free Interfaces: Warn - $down/$sum free interfaces for $days days\";\n	} elsif($down <= $crit) {\n		$stat = 2;\n		$msg = \"Free Interfaces: CRIT - $down/$sum free interfaces for $days days\";\n	}\n	\n	$perf = \"total_int=$int_number total_eth=$sum total_eth_free=$down\";\n\n### Bad Syntax ###\n\n} else {\n	FSyntaxError();\n}\n\n\nprint \"$msg | $perf\\n\";\nexit($stat);\n",
+					"file": "/home/perkev/project/monitor-utils/nagios/check-cisco.pl",
+					"file_size": 13823,
+					"file_write_time": 130726404717802869,
+					"settings":
+					{
+						"buffer_size": 13823,
+						"line_ending": "Unix"
+					}
+				}
+			],
+			"build_system": "",
+			"build_system_choices":
+			[
+			],
+			"build_varint": "",
+			"command_palette":
+			{
+				"height": 0.0,
+				"last_filter": "",
+				"selected_items":
+				[
+				],
+				"width": 0.0
+			},
+			"console":
+			{
+				"height": 0.0,
+				"history":
+				[
+				]
+			},
+			"distraction_free":
+			{
+				"menu_visible": true,
+				"show_minimap": false,
+				"show_open_files": false,
+				"show_tabs": false,
+				"side_bar_visible": false,
+				"status_bar_visible": false
+			},
+			"expanded_folders":
+			[
+				"/home/perkev/project/monitor-utils"
+			],
+			"file_history":
+			[
+			],
+			"find":
+			{
+				"height": 0.0
+			},
+			"find_in_files":
+			{
+				"height": 0.0,
+				"where_history":
+				[
+				]
+			},
+			"find_state":
+			{
+				"case_sensitive": false,
+				"find_history":
+				[
+				],
+				"highlight": true,
+				"in_selection": false,
+				"preserve_case": false,
+				"regex": false,
+				"replace_history":
+				[
+				],
+				"reverse": false,
+				"show_context": true,
+				"use_buffer2": true,
+				"whole_word": false,
+				"wrap": true
+			},
+			"folders":
+			[
+				{
+					"path": "/home/perkev/project/monitor-utils"
+				}
+			],
+			"groups":
+			[
+				{
+					"selected": 0,
+					"sheets":
+					[
+						{
+							"buffer": 0,
+							"file": "/home/perkev/project/monitor-utils/nagios/check-cisco.pl",
+							"semi_transient": false,
+							"settings":
+							{
+								"buffer_size": 13823,
+								"regions":
+								{
+								},
+								"selection":
+								[
+									[
+										943,
+										943
+									]
+								],
+								"settings":
+								{
+									"syntax": "Packages/Perl/Perl.tmLanguage",
+									"translate_tabs_to_spaces": false
+								},
+								"translation.x": 0.0,
+								"translation.y": 462.0,
+								"zoom_level": 1.0
+							},
+							"stack_index": 0,
+							"type": "text"
+						}
+					]
+				}
+			],
+			"incremental_find":
+			{
+				"height": 0.0
+			},
+			"input":
+			{
+				"height": 0.0
+			},
+			"layout":
+			{
+				"cells":
+				[
+					[
+						0,
+						0,
+						1,
+						1
+					]
+				],
+				"cols":
+				[
+					0.0,
+					1.0
+				],
+				"rows":
+				[
+					0.0,
+					1.0
+				]
+			},
+			"menu_visible": true,
+			"output.find_results":
+			{
+				"height": 0.0
+			},
+			"pinned_build_system": "",
+			"position": "0,0,0,0,0,859,13,1918,1165,1920,1200",
+			"project": "",
+			"replace":
+			{
+				"height": 0.0
+			},
+			"save_all_on_build": true,
+			"select_file":
+			{
+				"height": 0.0,
+				"last_filter": "",
+				"selected_items":
+				[
+				],
+				"width": 0.0
+			},
+			"select_project":
+			{
+				"height": 0.0,
+				"last_filter": "",
+				"selected_items":
+				[
+				],
+				"width": 0.0
+			},
+			"select_symbol":
+			{
+				"height": 0.0,
+				"last_filter": "",
+				"selected_items":
+				[
+				],
+				"width": 0.0
+			},
+			"selected_group": 0,
+			"settings":
+			{
+			},
+			"show_minimap": true,
+			"show_open_files": false,
+			"show_tabs": true,
+			"side_bar_visible": true,
+			"side_bar_width": 179.0,
+			"status_bar_visible": true,
+			"template_settings":
+			{
+			},
+			"window_id": 2,
+			"workspace_name": ""
+		}
+	],
+	"workspaces":
+	{
+		"recent_workspaces":
+		[
+		]
+	}
+}

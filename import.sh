@@ -18,3 +18,4 @@ cp -u ~/.zshrc ../env
 #folders then
 cp -u -r ~/.config/sublime-text-3 ../env
 cp -u -r ~/.fonts ../env
+cp -u -r ~/.oh-my-zsh ../env
